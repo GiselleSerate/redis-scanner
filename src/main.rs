@@ -3,6 +3,7 @@ use redis_scanner::{
   self,
   argv::{Argv, Commands},
   expire::ExpireCommand,
+  sum::SumCommand,
   idle::IdleCommand,
   memory::MemoryCommand,
   touch::TouchCommand,
@@ -30,6 +31,7 @@ async fn main() {
     Commands::Touch(_) => TouchCommand::run(argv, client, nodes).await.unwrap(),
     Commands::Memory(_) => MemoryCommand::run(argv, client, nodes).await.unwrap(),
     Commands::Expire(_) => ExpireCommand::run(argv, client, nodes).await.unwrap(),
+    Commands::Sum(_) => SumCommand::run(argv, client, nodes).await.unwrap(),
   };
   if let Some(output) = output {
     let output = output.print();

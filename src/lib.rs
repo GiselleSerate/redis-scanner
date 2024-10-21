@@ -52,6 +52,7 @@ pub trait Command {
 
 pub mod argv;
 pub mod expire;
+pub mod sum;
 pub mod idle;
 pub mod memory;
 pub mod output;
