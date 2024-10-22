@@ -1,7 +1,14 @@
 Redis Scanner
 =============
 
-Utilities for inspecting Redis servers via the `SCAN` interface.
+Utilities for inspecting or operating on Redis servers via the `SCAN` interface. This module is intended to be used in
+cases where other tools may not work due to memory limits or certain access control restrictions.
+
+All commands are read-only and do not read values, with the following exceptions:
+
+* `expire` sets a TTL on keys and therefore is not read-only.
+* `touch` modifies a key's last access time and therefore is not read-only.
+* `sum` reads integer values and can conditionally reset them to 0.
 
 ## Commands
 
@@ -16,6 +23,7 @@ Commands:
   touch   Call `TOUCH` on each key
   ttl     Inspect keys via the `TTL` command
   expire  Set an expiration on keys
+  sum     Read and sum counters via the `GET` or `GETSET` command
   help    Print this message or the help of the given subcommand(s)
 
 Options:
@@ -203,6 +211,30 @@ $ redis_scanner memory --group-by "^(\w+):\d*"
 | users    | 144    |
 +----------+--------+
 ```
+
+### Sum
+
+```
+Read and sum counters via the `GET` or `GETSET` command
+
+Usage: redis_scanner sum [OPTIONS]
+
+Options:
+  -f, --format <STRING>              The output format, if applicable [default: table] [possible values: table, csv, json]
+  -S, --sort <STRING>                The sort order to use [default: desc] [possible values: asc, desc]
+  -g, --group-by <REGEX>             A regular expression used to group or transform keys (via `Regex::captures`) while aggregating results. This is often used to extract substrings in a key
+      --group-by-delimiter <STRING>  A delimiter used to `slice::join` multiple values from `--group-by`, if applicable [default: :]
+      --filter-missing-groups        Whether to skip keys that do not capture anything from the `--group-by` regex
+  -l, --limit <NUMBER>               The maximum number of results to return. Set to 0 to read the entire data set [default: 100]
+  -o, --offset <NUMBER>              The number of results to skip, after sorting. Note: the client must hold at least `limit + offset` keys in memory [default: 0]
+      --max-index-size <NUMBER>      The number of records to index in memory while scanning. Default is `--limit + --offset`
+  -F, --file <PATH>                  Write the final output to the provided file
+      --decr                         Whether to decrement counters by the value read, while scanning
+  -h, --help                         Print help
+  -V, --version                      Print version
+```
+
+See the `memory` command for more info on the `--group-by` and `--group-by-filter` argv.
 
 ## TLS Notes
 

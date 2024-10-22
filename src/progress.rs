@@ -1,4 +1,4 @@
-use crate::utils;
+use crate::{progress, utils};
 use fred::{
   clients::RedisClient,
   interfaces::{ClientLike, EventInterface},
@@ -24,10 +24,10 @@ const COUNTER_BAR_STYLE_TEMPLATE: &str = "[{elapsed_precise}] [{eta_precise}] {p
 const STATUS_BAR_STYLE_TEMPLATE: &str = "{prefix:.bold} {wide_msg}";
 static QUIET_OUTPUT: AtomicUsize = AtomicUsize::new(0);
 static MIN_REFRESH_DELAY: AtomicUsize = AtomicUsize::new(0);
-static PROGRESS: Lazy<Progress> = Lazy::new(|| Progress::default());
+static PROGRESS: Lazy<Progress> = Lazy::new(Progress::default);
 
 pub fn global_progress() -> &'static Progress {
-  &*PROGRESS
+  &PROGRESS
 }
 
 pub fn quiet_output() -> bool {
@@ -130,7 +130,7 @@ impl Counters {
 #[macro_export]
 macro_rules! check_quiet {
   () => {
-    if crate::progress::quiet_output() {
+    if progress::quiet_output() {
       return;
     }
   };
@@ -139,14 +139,14 @@ macro_rules! check_quiet {
 #[macro_export]
 macro_rules! status {
   ($msg:expr) => {
-    if !crate::progress::quiet_output() {
-      crate::progress::global_progress().status.set_message($msg);
+    if !progress::quiet_output() {
+      progress::global_progress().status.set_message($msg);
     }
   };
   ($prefix:expr, $msg:expr) => {
-    if !crate::progress::quiet_output() {
-      crate::progress::global_progress().status.set_prefix($prefix);
-      crate::progress::global_progress().status.set_message($msg);
+    if !progress::quiet_output() {
+      progress::global_progress().status.set_prefix($prefix);
+      progress::global_progress().status.set_message($msg);
     }
   };
 }
@@ -154,9 +154,9 @@ macro_rules! status {
 #[macro_export]
 macro_rules! clear_status {
   () => {
-    if !crate::progress::quiet_output() {
-      crate::progress::global_progress().status.set_prefix("");
-      crate::progress::global_progress().status.set_message("");
+    if !progress::quiet_output() {
+      progress::global_progress().status.set_prefix("");
+      progress::global_progress().status.set_message("");
     }
   };
 }
@@ -243,7 +243,6 @@ impl Default for Progress {
 }
 
 impl Progress {
-  ///
   pub fn add_server(&self, server: &Server, estimate: Option<u64>, prefix: Option<&str>) {
     check_quiet!();
 
@@ -268,7 +267,6 @@ impl Progress {
     self.bars.lock().add_bar(server.clone(), bar);
   }
 
-  ///
   pub fn update_estimate(&self, server: &Server, estimate: u64) {
     check_quiet!();
 

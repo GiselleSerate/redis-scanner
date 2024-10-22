@@ -3,8 +3,7 @@ use crate::{
   clear_status,
   output::Output,
   pqueue::{HashAndOrd, PrioQueue},
-  progress,
-  progress::{global_progress, setup_event_logs, Counters},
+  progress::{self, global_progress, setup_event_logs, Counters},
   status,
   utils,
   ClusterNode,
@@ -250,7 +249,9 @@ impl Command for MemoryCommand {
 
       let mut tasks = Vec::with_capacity(nodes.len());
       let counters = Counters::new();
-      let max_size = cmd_argv.max_index_size.unwrap_or(cmd_argv.limit + cmd_argv.offset);
+      let max_size = cmd_argv
+        .max_index_size
+        .unwrap_or(cmd_argv.limit.saturating_add(cmd_argv.offset));
       let pqueue = Arc::new(PrioQueue::new(cmd_argv.sort.clone(), max_size as usize));
       let state = State {
         total_used: Arc::new(AtomicUsize::new(0)),

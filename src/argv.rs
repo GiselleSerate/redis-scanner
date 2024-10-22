@@ -144,7 +144,7 @@ pub enum Commands {
   Ttl(TtlArgv),
   /// Set an expiration on keys.
   Expire(ExpireArgv),
-  /// Inspect values of keys via the `GET` command. Only for numerical values.
+  /// Read and sum counters via the `GET` or `GETSET` command.
   Sum(SumArgv),
 }
 
@@ -299,7 +299,7 @@ pub struct SumArgv {
   /// Whether to skip keys that do not capture anything from the `--group-by` regex.
   #[arg(long = "filter-missing-groups", default_value = "false")]
   pub filter_missing_groups: bool,
-  /// The maximum number of results to return.
+  /// The maximum number of results to return. Set to 0 to read the entire data set.
   #[arg(
     short = 'l',
     long = "limit",
@@ -324,6 +324,9 @@ pub struct SumArgv {
   /// Write the final output to the provided file.
   #[arg(short = 'F', long = "file", value_name = "PATH")]
   pub file:                  Option<String>,
+  /// Whether to decrement counters by the value read, while scanning.
+  #[arg(long = "decr", default_value = "false")]
+  pub decr:                  bool,
 }
 
 #[derive(Args, Clone, Debug, Default)]

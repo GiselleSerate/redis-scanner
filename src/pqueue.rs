@@ -79,7 +79,7 @@ impl<T: HashAndOrd + Clone> PrioQueue<T> {
       // add pointer to new index record
       inner.sorted.entry(new_weight).or_default().insert(int_hash);
       None
-    } else if old_len >= self.max_size {
+    } else if self.max_size != 0 && old_len >= self.max_size {
       // insert and remove one element
       let to_remove = match self.sort {
         Sort::Asc => inner.sorted.last_key_value().and_then(|(_, v)| v.last().cloned()),

@@ -56,7 +56,7 @@ pub fn set_atomic(val: &AtomicUsize, amt: usize) -> usize {
   val.swap(amt, Ordering::SeqCst)
 }
 
-#[cfg(all(feature = "enable-native-tls"))]
+#[cfg(feature = "enable-native-tls")]
 fn build_tls_config(argv: &Argv) -> Result<Option<TlsConnector>, RedisError> {
   use fred::native_tls::{Certificate, Identity, TlsConnector};
 
@@ -232,7 +232,7 @@ pub async fn init(argv: &Argv) -> Result<(Builder, RedisClient), RedisError> {
     tls: build_tls_config(argv)?.map(|t| t.into()),
     username: argv.username.clone(),
     password: argv.password.clone(),
-    database: argv.db.clone(),
+    database: argv.db,
     fail_fast: true,
     ..Default::default()
   };
@@ -336,7 +336,7 @@ pub fn regexp_capture(regex: &Option<Regex>, key: &RedisKey, delimiter: &str) ->
     let out: Vec<String> = regex
       .captures(key_str.as_ref())
       .iter()
-      .map(|s| {
+      .flat_map(|s| {
         let mut out = Vec::with_capacity(s.len() - 1);
         for i in 0 .. s.len() - 1 {
           if let Some(val) = s.get(i + 1) {
@@ -346,7 +346,6 @@ pub fn regexp_capture(regex: &Option<Regex>, key: &RedisKey, delimiter: &str) ->
 
         out
       })
-      .flatten()
       .collect();
 
     let out = out.join(delimiter);

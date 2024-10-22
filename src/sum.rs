@@ -1,10 +1,9 @@
 use crate::{
-  argv::{Argv, Commands, SumArgv, OutputFormat},
+  argv::{Argv, Commands, OutputFormat, SumArgv},
   clear_status,
   output::Output,
   pqueue::{HashAndOrd, PrioQueue},
-  progress,
-  progress::{global_progress, setup_event_logs, Counters},
+  progress::{self, global_progress, setup_event_logs, Counters},
   status,
   utils,
   ClusterNode,
@@ -23,9 +22,9 @@ use std::{
 static HEADERS: &[&str] = &["Key", "Value", "Percent of Total"];
 #[derive(Clone, Debug)]
 pub struct Sum {
-  pub key:          RedisKey,
-  pub value:        i64,
-  pub group:        Option<String>,
+  pub key:   RedisKey,
+  pub value: i64,
+  pub group: Option<String>,
 }
 
 impl Sum {
@@ -101,7 +100,11 @@ impl Output for State {
   }
 
   fn print_table(self: Box<Self>) -> String {
-    let limit = self.cmd_argv.limit as usize;
+    let limit = if self.cmd_argv.limit == 0 {
+      usize::MAX
+    } else {
+      self.cmd_argv.limit as usize
+    };
     let total = utils::read_atomic(&self.total_used);
     let (results, offset) = self.take();
     let rows: Vec<_> = results
@@ -115,7 +118,11 @@ impl Output for State {
   }
 
   fn print_json(self: Box<Self>) -> String {
-    let limit = self.cmd_argv.limit as usize;
+    let limit = if self.cmd_argv.limit == 0 {
+      usize::MAX
+    } else {
+      self.cmd_argv.limit as usize
+    };
     let total = utils::read_atomic(&self.total_used);
     let (results, offset) = self.take();
     let rows: Vec<_> = results
@@ -129,7 +136,11 @@ impl Output for State {
   }
 
   fn print_csv(self: Box<Self>) -> String {
-    let limit = self.cmd_argv.limit as usize;
+    let limit = if self.cmd_argv.limit == 0 {
+      usize::MAX
+    } else {
+      self.cmd_argv.limit as usize
+    };
     let total = utils::read_atomic(&self.total_used);
     let (results, offset) = self.take();
     let rows: Vec<_> = results
@@ -185,15 +196,17 @@ async fn scan_node(state: &State, server: Server, client: RedisClient) -> Result
           // if this fails in this context it's a bug
           let pipeline = client.pipeline();
           for key in keys.iter() {
-            pipeline
-              .get(key.clone())
-              .await?;
+            if state.cmd_argv.decr {
+              pipeline.getset(key.clone(), 0).await?;
+            } else {
+              pipeline.get(key.clone()).await?;
+            }
           }
 
-          let sizes = match pipeline.all::<Vec<Option<i64>>>().await {
-            Ok(sizes) => sizes,
+          let counts = match pipeline.all::<Vec<Option<i64>>>().await {
+            Ok(counts) => counts,
             Err(e) => {
-              error!("{} Error calling GET: {:?}", server, e);
+              error!("{} Error calling GET or GETSET: {:?}", server, e);
 
               if state.argv.ignore {
                 return Ok((scanned, success, skipped, errored));
@@ -206,7 +219,7 @@ async fn scan_node(state: &State, server: Server, client: RedisClient) -> Result
           success += keys.len();
 
           for (idx, key) in keys.into_iter().enumerate() {
-            if let Some(value) = sizes[idx] {
+            if let Some(value) = counts[idx] {
               if value > 0 {
                 utils::incr_atomic(&state.total_used, value as usize);
               }
@@ -250,7 +263,14 @@ impl Command for SumCommand {
 
       let mut tasks = Vec::with_capacity(nodes.len());
       let counters = Counters::new();
-      let max_size = cmd_argv.max_index_size.unwrap_or(cmd_argv.limit + cmd_argv.offset);
+      let max_size = if cmd_argv.limit == 0 {
+        0
+      } else {
+        cmd_argv
+          .max_index_size
+          .unwrap_or(cmd_argv.limit.saturating_add(cmd_argv.offset))
+      };
+
       let pqueue = Arc::new(PrioQueue::new(cmd_argv.sort.clone(), max_size as usize));
       let state = State {
         total_used: Arc::new(AtomicUsize::new(0)),

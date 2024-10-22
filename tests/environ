@@ -3,7 +3,7 @@
 . $PWD/tests/scripts/utils.sh
 
 if [ -z "$REDIS_VERSION" ]; then
-  export REDIS_VERSION=7.2.4
+  export REDIS_VERSION=7.4.0
 fi
 
 if [ -z "$CARGO_HTTP_DEBUG" ]; then

@@ -22,7 +22,7 @@ pretty_env_logger = "0.5"
 regex = "1.10"
 futures = "0.3"
 tokio = { version = "1.37", features = ["full"] }
-fred = { version = "9.0.3", features = ["i-std", "i-cluster", "i-memory", "replicas"] }
+fred = { version = "9.3.0", features = ["i-std", "i-cluster", "i-memory", "replicas"] }
 indicatif = "0.17"
 csv = "1.1"
 serde_json = "1.0"
