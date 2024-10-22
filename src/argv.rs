@@ -144,6 +144,8 @@ pub enum Commands {
   Ttl(TtlArgv),
   /// Set an expiration on keys.
   Expire(ExpireArgv),
+  /// Inspect values of keys via the `GET` command. Only for numerical values.
+  Sum(SumArgv),
 }
 
 impl Default for Commands {
@@ -274,6 +276,51 @@ pub struct MemoryArgv {
   /// The number of samples to provide in each `MEMORY USAGE` command.
   #[arg(short = 's', long = "samples", allow_negative_numbers = false, value_name = "NUMBER")]
   pub samples:               Option<u32>,
+  /// Write the final output to the provided file.
+  #[arg(short = 'F', long = "file", value_name = "PATH")]
+  pub file:                  Option<String>,
+}
+
+#[derive(Args, Clone, Debug, Default)]
+pub struct SumArgv {
+  /// The output format, if applicable.
+  #[arg(short = 'f', long = "format", default_value = "table", value_name = "STRING")]
+  pub format:                OutputFormat,
+  /// The sort order to use.
+  #[arg(short = 'S', long = "sort", default_value = "desc", value_name = "STRING")]
+  pub sort:                  Sort,
+  /// A regular expression used to group or transform keys (via `Regex::captures`) while aggregating results. This is
+  /// often used to extract substrings in a key.
+  #[arg(short = 'g', long = "group-by", value_name = "REGEX")]
+  pub group_by:              Option<String>,
+  /// A delimiter used to `slice::join` multiple values from `--group-by`, if applicable.
+  #[arg(long = "group-by-delimiter", value_name = "STRING", default_value = ":")]
+  pub group_by_delimiter:    String,
+  /// Whether to skip keys that do not capture anything from the `--group-by` regex.
+  #[arg(long = "filter-missing-groups", default_value = "false")]
+  pub filter_missing_groups: bool,
+  /// The maximum number of results to return.
+  #[arg(
+    short = 'l',
+    long = "limit",
+    default_value = "100",
+    allow_negative_numbers = false,
+    value_name = "NUMBER"
+  )]
+  pub limit:                 u64,
+  /// The number of results to skip, after sorting. Note: the client must hold at least `limit + offset` keys in
+  /// memory.
+  #[arg(
+    short = 'o',
+    long = "offset",
+    default_value = "0",
+    allow_negative_numbers = false,
+    value_name = "NUMBER"
+  )]
+  pub offset:                u64,
+  /// The number of records to index in memory while scanning. Default is `--limit + --offset`.
+  #[arg(long = "max-index-size", allow_negative_numbers = false, value_name = "NUMBER")]
+  pub max_index_size:        Option<u64>,
   /// Write the final output to the provided file.
   #[arg(short = 'F', long = "file", value_name = "PATH")]
   pub file:                  Option<String>,
