@@ -125,6 +125,7 @@ impl Argv {
       Commands::Memory(ref argv) => argv.file.clone(),
       Commands::Idle(ref argv) => argv.file.clone(),
       Commands::Ttl(ref argv) => argv.file.clone(),
+      Commands::Sum(ref argv) => argv.file.clone(),
       _ => None,
     }
   }
